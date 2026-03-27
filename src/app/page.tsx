@@ -186,19 +186,18 @@ function HomeInner() {
               ))}
             </select>
 
-            {/* Brand / company filter — only shown when a search has multiple distinct results */}
-            {brandOptions.length >= 2 && (
-              <select
-                value={filterBrand}
-                onChange={(e) => setFilterBrand(e.target.value)}
-                className="col-span-2 sm:col-span-1 px-3 py-2 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm w-full sm:w-auto"
-              >
-                <option value="all">All Companies</option>
-                {brandOptions.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            )}
+            {/* Brand / company filter — always visible; options populate from current search results */}
+            <select
+              value={filterBrand}
+              onChange={(e) => setFilterBrand(e.target.value)}
+              disabled={brandOptions.length === 0}
+              className="col-span-2 sm:col-span-1 px-3 py-2 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="all">{brandOptions.length > 0 ? 'All Companies' : 'All Companies'}</option>
+              {brandOptions.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
           </div>
         </div>
       </section>
