@@ -1,6 +1,3 @@
-'use client';
-
-import Link from 'next/link';
 import sourcesData from '@/data/sources.json';
 import { ORG_CONFIG } from '@/lib/types';
 import type { OrgCode } from '@/lib/types';
@@ -12,16 +9,19 @@ export default function DocumentsPage() {
         Source Documents
       </h2>
       <p className="text-primary-500 mb-6">
-        View each kosher-for-Passover guide in full. Click to open the document viewer.
+        View each kosher-for-Passover guide in full. Click to open the document.
       </p>
 
       <div className="grid md:grid-cols-2 gap-4">
         {sourcesData.map((source) => {
           const orgConfig = ORG_CONFIG[source.org as OrgCode];
+          const fileUrl = (source as { externalUrl?: string }).externalUrl ?? `/pdfs/${source.fileName}`;
           return (
-            <Link
+            <a
               key={source.slug}
-              href={`/documents/${source.slug}`}
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-white rounded-xl border border-primary-100 p-5 hover:shadow-lg hover:border-gold-300 transition-all group"
             >
               <div className="flex items-start gap-4">
@@ -50,7 +50,7 @@ export default function DocumentsPage() {
                   </p>
                 </div>
               </div>
-            </Link>
+            </a>
           );
         })}
       </div>
