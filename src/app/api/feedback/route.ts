@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: 'Pesach Search <onboarding@resend.dev>',
+      from: 'Pesach Search <noreply@isitkosherforpesach.com>',
       to: process.env.FEEDBACK_TO_EMAIL,
       replyTo: email || undefined,
       subject,
