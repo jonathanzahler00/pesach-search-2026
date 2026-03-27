@@ -41,24 +41,41 @@ export default function ScanPage() {
 
   const processFile = useCallback(async (file: File) => {
     setState({ phase: 'processing' });
+    let url: string | null = null;
     try {
+      url = URL.createObjectURL(file);
+
+      // Load image into an <img> element (browser respects EXIF orientation)
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('img-load-failed'));
+        img.src = url!;
+      });
+
+      // Draw onto a canvas so ZXing reads correct pixel data
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('canvas-unavailable');
+      ctx.drawImage(img, 0, 0);
+
+      // Decode directly from canvas pixels — more reliable than decodeFromImageUrl
       const { BrowserMultiFormatReader } = await import('@zxing/browser');
       const reader = new BrowserMultiFormatReader();
-      const url = URL.createObjectURL(file);
-      try {
-        const result = await reader.decodeFromImageUrl(url);
-        URL.revokeObjectURL(url);
-        if (result) {
-          lookupBarcode(result.getText());
-        } else {
-          setState({ phase: 'not_found', barcode: 'N/A', productName: 'No barcode detected — try a clearer photo' });
-        }
-      } catch {
-        URL.revokeObjectURL(url);
+      const result = reader.decodeFromCanvas(canvas);
+      lookupBarcode(result.getText());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'img-load-failed' || msg === 'canvas-unavailable') {
+        setState({ phase: 'error', message: 'Could not read image. Please try again.' });
+      } else {
+        // NotFoundException from ZXing means no barcode was found
         setState({ phase: 'not_found', barcode: 'N/A', productName: 'No barcode detected — try a clearer photo' });
       }
-    } catch {
-      setState({ phase: 'error', message: 'Could not read image. Please try again.' });
+    } finally {
+      if (url) URL.revokeObjectURL(url);
     }
   }, [lookupBarcode]);
 
