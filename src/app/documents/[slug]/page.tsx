@@ -25,7 +25,7 @@ function DocumentViewerInner() {
     );
   }
 
-  const fileUrl = `/pdfs/${source.fileName}`;
+  const fileUrl = (source as { externalUrl?: string }).externalUrl ?? `/pdfs/${source.fileName}`;
   const isImage = source.fileType === 'image';
 
   return (

@@ -70,6 +70,17 @@
     "description": "Star-K's Passover guide with product listings and kosher for Pesach information."
   },
   {
+    "slug": "cor-passover-2026",
+    "org": "COR",
+    "orgFull": "Kashruth Council of Canada",
+    "title": "COR Passover Guide 2026",
+    "fileName": "COR-Passover-2026_final.pdf",
+    "externalUrl": "https://github.com/jonathanzahler00/pesach-search-2026/releases/download/pdfs-v1/COR-Passover-2026_final.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "COR's comprehensive Passover product guide for 2026, covering permitted and prohibited items with certification details."
+  },
+  {
     "slug": "cor-costco",
     "org": "COR",
     "orgFull": "Kashruth Council of Canada",
