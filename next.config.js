@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 
-const securityHeaders = [
+const pageSecurityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -21,9 +21,9 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://images.openfoodfacts.org",
       "frame-src 'self'",
-      "connect-src 'self'",
+      "connect-src 'self' https://world.openfoodfacts.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -31,11 +31,29 @@ const securityHeaders = [
   },
 ];
 
+// Minimal headers for static assets — do NOT apply X-Frame-Options or CSP
+// to PDFs/images so browsers can render them in iframes without restrictions.
+const staticAssetHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+  { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+];
+
 const nextConfig = {
   headers: async () => [
+    // Static PDF and image files — no framing restrictions
     {
-      source: '/(.*)',
-      headers: securityHeaders,
+      source: '/pdfs/:path*',
+      headers: staticAssetHeaders,
+    },
+    {
+      source: '/icons/:path*',
+      headers: staticAssetHeaders,
+    },
+    // All other routes get full security headers
+    {
+      source: '/((?!pdfs|icons).*)',
+      headers: pageSecurityHeaders,
     },
   ],
 };
