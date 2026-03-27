@@ -1,7 +1,22 @@
 import type { Metadata, Viewport } from 'next';
+import { Playfair_Display, DM_Sans } from 'next/font/google';
 import './globals.css';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-playfair',
+  display: 'swap',
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Pesach Search — Kosher for Passover?',
@@ -18,7 +33,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen">
+      <body className={`min-h-screen ${playfair.variable} ${dmSans.variable}`}>
         {/* Header */}
         <header className="bg-primary-900 text-white sticky top-0 z-50 shadow-lg">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">

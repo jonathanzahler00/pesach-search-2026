@@ -59,29 +59,6 @@ function DocumentViewerInner() {
         ) : (
           /* PDF viewer */
           <div className="pdf-viewer-container">
-            {/*
-              CURSOR IMPLEMENTATION NOTE:
-              
-              The react-pdf-viewer library needs to be set up with the PDF.js worker.
-              Here's the pattern:
-
-              import { Viewer, Worker } from '@react-pdf-viewer/core';
-              import { defaultLayoutPlugin } from '@react-pdf-viewer/default-layout';
-              import '@react-pdf-viewer/core/lib/styles/index.css';
-              import '@react-pdf-viewer/default-layout/lib/styles/index.css';
-
-              const defaultLayoutPluginInstance = defaultLayoutPlugin();
-
-              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-                <Viewer
-                  fileUrl={fileUrl}
-                  plugins={[defaultLayoutPluginInstance]}
-                  initialPage={initialPage - 1}
-                />
-              </Worker>
-
-              For now, we use an iframe fallback which works in all browsers:
-            */}
             <iframe
               src={`${fileUrl}#page=${initialPage}`}
               className="w-full h-full border-0"
