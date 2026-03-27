@@ -17,7 +17,6 @@ type ScanState =
 export default function ScanPage() {
   const [state, setState] = useState<ScanState>({ phase: 'idle' });
   const fileRef = useRef<HTMLInputElement>(null);
-  const liveFileRef = useRef<HTMLInputElement>(null);
 
   const lookupBarcode = useCallback(async (barcode: string) => {
     setState({ phase: 'looking_up', barcode });
@@ -99,35 +98,14 @@ export default function ScanPage() {
       {/* IDLE */}
       {state.phase === 'idle' && (
         <div className="space-y-3">
-          {/* Primary — opens native camera (works on all devices, no permission prompt) */}
-          <button
-            onClick={() => liveFileRef.current?.click()}
-            className="w-full bg-primary-900 text-white rounded-2xl p-6 flex flex-col items-center gap-3 active:bg-primary-800 transition-colors"
-          >
-            <span className="text-5xl">📸</span>
-            <span className="font-display text-lg font-semibold">Scan Barcode</span>
-            <span className="text-xs text-primary-300 text-center">Opens your camera — point at any barcode</span>
-          </button>
-          {/* Hidden input — capture=environment opens rear camera directly on mobile */}
-          <input
-            ref={liveFileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ''; }}
-          />
-
-          {/* Secondary — upload from photo library */}
+          {/* Primary — upload a photo of a barcode */}
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full border-2 border-dashed border-primary-200 text-primary-600 rounded-2xl p-4 flex items-center gap-3 active:border-primary-400 transition-colors"
+            className="w-full bg-primary-900 text-white rounded-2xl p-6 flex flex-col items-center gap-3 active:bg-primary-800 transition-colors"
           >
-            <span className="text-2xl">🖼️</span>
-            <div className="text-left">
-              <p className="font-medium text-sm">Upload from photo library</p>
-              <p className="text-xs text-primary-400">Already have a photo with a barcode?</p>
-            </div>
+            <span className="text-5xl">🖼️</span>
+            <span className="font-display text-lg font-semibold">Upload Barcode Photo</span>
+            <span className="text-xs text-primary-300 text-center">Choose a photo from your library that shows a barcode</span>
           </button>
           <input
             ref={fileRef}
@@ -139,8 +117,8 @@ export default function ScanPage() {
 
           <div className="bg-primary-50 rounded-xl p-4 text-xs text-primary-500 space-y-1">
             <p className="font-medium text-primary-700">How it works</p>
-            <p>1. Tap <strong>Scan Barcode</strong> — your camera opens</p>
-            <p>2. Point at a product barcode and take a photo</p>
+            <p>1. Tap <strong>Upload Barcode Photo</strong></p>
+            <p>2. Select a photo that clearly shows a product barcode</p>
             <p>3. We look it up in Open Food Facts &amp; match against OU, CRC &amp; Star-K guides</p>
             <p className="text-primary-400 pt-1">Works on iPhone, Android, and desktop.</p>
           </div>
