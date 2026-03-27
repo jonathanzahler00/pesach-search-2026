@@ -89,6 +89,7 @@ function HomeInner() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterOrg, setFilterOrg] = useState<string>('all');
+  const [filterBrand, setFilterBrand] = useState<string>('all');
   const [reportProduct, setReportProduct] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,17 +97,35 @@ function HomeInner() {
     if (q) setQuery(q);
   }, [searchParams]);
 
+  // Reset brand filter whenever the query changes
+  useEffect(() => {
+    setFilterBrand('all');
+  }, [query]);
+
   const totalCount = getTotalCount();
   const categories = getCategories();
   const orgs = getOrgs();
 
-  const results = useMemo(() => {
+  // Results after status + org filters (used to build the brand option list)
+  const preFilteredResults = useMemo(() => {
     if (!query || query.length < 2) return [];
     let r = searchItems(query);
     if (filterStatus !== 'all') r = r.filter(res => res.item.status === filterStatus);
     if (filterOrg !== 'all') r = r.filter(res => res.item.org === filterOrg);
     return r;
   }, [query, filterStatus, filterOrg]);
+
+  // Unique brand/company names from pre-filtered results
+  const brandOptions = useMemo(() => {
+    const names = new Set(preFilteredResults.map(r => r.item.productName));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [preFilteredResults]);
+
+  // Final results with brand filter applied on top
+  const results = useMemo(() => {
+    if (filterBrand === 'all') return preFilteredResults;
+    return preFilteredResults.filter(r => r.item.productName === filterBrand);
+  }, [preFilteredResults, filterBrand]);
 
   return (
     <div>
@@ -166,6 +185,20 @@ function HomeInner() {
                 </option>
               ))}
             </select>
+
+            {/* Brand / company filter — only shown when a search has multiple distinct results */}
+            {brandOptions.length >= 2 && (
+              <select
+                value={filterBrand}
+                onChange={(e) => setFilterBrand(e.target.value)}
+                className="col-span-2 sm:col-span-1 px-3 py-2 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm w-full sm:w-auto"
+              >
+                <option value="all">All Companies</option>
+                {brandOptions.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
       </section>
