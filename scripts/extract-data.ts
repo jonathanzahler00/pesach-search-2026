@@ -1063,6 +1063,250 @@ function isStarKNonFood(product: string): boolean {
 }
 
 // ============================================================
+// COR PASSOVER 2026 PARSER
+// ============================================================
+// Format: "ProductNameStatus" concatenated on one line, e.g.
+//   "Baking SodaNo certification required (year-round including Passover)"
+//   "BuckwheatKitniyot * (see note above)"
+// ALL-CAPS lines are parent section headers; sub-items start with "•"
+// Non-edible section follows edible products on a later page.
+
+function parseCORPassover2026(text: string): RawItem[] {
+  // Find product guide start — appears after the "Establishments & Services" page
+  const listStart = text.indexOf('passover \nProduct Guide\n');
+  if (listStart === -1) {
+    console.log('  ⚠️  Could not find COR Passover 2026 product guide section');
+    return [];
+  }
+
+  // Find the end of the non-edible section (kitniyot essay begins after it)
+  const listEnd = (() => {
+    for (const marker of [
+      '\nKASHRUTH COUNCIL OF CANADA | WWW.COR.CA\n22\n',
+      '\nOrigins\nThe earliest literature',
+      '\nKitniyot\n',
+    ]) {
+      const idx = text.indexOf(marker, listStart + 1000);
+      if (idx > listStart) return idx;
+    }
+    return text.length;
+  })();
+
+  const guideText = text.substring(listStart, listEnd);
+  const lines = guideText.split('\n').map(l => l.trim());
+
+  // Status fragments found at the end of concatenated product lines.
+  // Each entry: [searchString, status, displayNotes]
+  // Order: most specific first to avoid partial matches.
+  type StatusDef = [string, RawItem['status'], string | null];
+  const STATUS_DEFS: StatusDef[] = [
+    ['Certified (year-round including Passover)', 'approved', 'Year-round COR certified, Passover included'],
+    ['Certified by the OU is acceptable without Passover certification', 'approved', 'OU-certified, no separate Passover cert needed'],
+    ['Acceptable as-is for Passover', 'approved', null],
+    ['Kosher for Passover year-round even without Passover certification', 'approved', 'Kosher for Passover year-round'],
+    ['Kosher for Passover year-round', 'approved', 'Kosher for Passover year-round'],
+    ['No Passover certification required', 'approved', null],
+    ['No passover certification required', 'approved', null],
+    ['No certification required (year-round including Passover)', 'approved', null],
+    ['No Passover certification required', 'approved', null],
+    ['No certification required', 'approved', null],
+    ['No Passover Certification Required', 'approved', null],
+    ['Preferable with Passover certification', 'conditional', 'Preferable with Passover certification; if unavailable, buy before Passover'],
+    ['Requires Passover certification', 'conditional', 'Requires Passover certification'],
+    ['Kitniyot and may contain chametz', 'not_approved', 'Kitniyot and may contain chametz'],
+    ['kitniyot and may contain chametz', 'not_approved', 'Kitniyot and may contain chametz'],
+    ['May contain Chametz', 'not_approved', 'May contain chametz'],
+    ['may contain Chametz', 'not_approved', 'May contain chametz'],
+    ['Chametz', 'not_approved', 'Chametz — not acceptable for Passover'],
+    ['Should not have chametz-derived alcohol', 'ask_rabbi', 'Should not contain chametz-derived alcohol'],
+    ['Should be chametz-free', 'ask_rabbi', 'Should be chametz-free'],
+    ['There are differing opinions', 'ask_rabbi', 'Differing halachic opinions — consult your rabbi'],
+    ['differing opinions', 'ask_rabbi', 'Differing halachic opinions — consult your rabbi'],
+    ['Ask your rabbi', 'ask_rabbi', 'Ask your rabbi'],
+    ['Kitniyot *', 'kitniyot', 'Kitniyot (see COR guidelines)'],
+    ['kitniyot *', 'kitniyot', 'Kitniyot (see COR guidelines)'],
+  ];
+
+  const NOISE_PATTERNS = [
+    /^KASHRUTH COUNCIL OF CANADA/,
+    /^2026-5786 PASSOVER GUIDE/,
+    /^halachic(\s|$)/,
+    /^COR$/,
+    /^NER$/,
+    /^P$/,
+    /^REQUIRES(\s|$)/,
+    /^NO PASSOVER(\s|$)/,
+    /^CERTIFICATION REQUIRED/,
+    /^TAKE NOTE!/,
+    /^KITNIYOT \*This product/,
+    /^passover(\s|$)/i,
+    /^Product Guide$/,
+    /^Non-Edible/,
+    /^products$/,
+    /^CHAMETZ$/,
+    /^\d+$/,
+    /^See (?!Fish|Poultry|Milk|Oil|Soft)/,  // skip cross-refs but not content
+    /^see /,
+    /^The following baby formula/,
+    /^facilities and are acceptable/,
+    /^kitniyot and should be prepared/,
+    /^Redpath White Sugar and Lantic/,
+    /^All varieties of/,
+    /^www\.cor\.ca/i,
+    /^Note:/,
+    /^IMPORTANT/,
+  ];
+
+  function splitProductLine(line: string): { name: string; status: RawItem['status']; notes: string | null } | null {
+    // Remove leading bullet
+    const clean = line.replace(/^[•\-]\s*/, '').trim();
+    if (!clean) return null;
+
+    let best: { idx: number; def: StatusDef } | null = null;
+
+    for (const def of STATUS_DEFS) {
+      const idx = clean.indexOf(def[0]);
+      if (idx > 0 && (!best || idx < best.idx)) {
+        best = { idx, def };
+      }
+    }
+
+    if (!best || best.idx < 1) return null;
+
+    const name = clean.substring(0, best.idx).trim();
+    const afterStatus = clean.substring(best.idx + best.def[0].length).trim();
+    // Capture any extra text after the status as additional notes
+    const extraNotes = afterStatus.length > 3 ? afterStatus : null;
+    const baseNotes = best.def[2];
+    const notes = [baseNotes, extraNotes].filter(Boolean).join('. ') || null;
+
+    return { name, status: best.def[1], notes };
+  }
+
+  function getCORCategory(name: string, isNonEdible: boolean): string {
+    if (isNonEdible) return 'Non-Food';
+    const l = name.toLowerCase();
+    if (l.includes('coffee') || l.includes('tea') || l.includes('juice') ||
+        l.includes('soda') || l.includes('seltzer') || l.includes('water') ||
+        l.includes('drink') || l.includes('milk') || l.includes('cola') ||
+        l.includes('soy milk') || l.includes('rice milk') || l.includes('almond milk')) return 'Beverages';
+    if (l.includes('wine') || l.includes('alcohol') || l.includes('vodka') ||
+        l.includes('beer') || l.includes('rum') || l.includes('whiskey')) return 'Wines & Liquors';
+    if (l.includes('sugar') || l.includes('sweetener') || l.includes('honey') ||
+        l.includes('syrup') || l.includes('agave')) return 'Sugar & Sweeteners';
+    if (l.includes('oil') && !l.includes('baby oil')) return 'Oils';
+    if (l.includes('nut') || l.includes('almond') || l.includes('walnut') ||
+        l.includes('pecan') || l.includes('hazelnut') || l.includes('pistachio')) return 'Nuts (Raw)';
+    if (l.includes('fruit') || l.includes('apple') || l.includes('orange') ||
+        l.includes('grape') || l.includes('berry') || l.includes('lemon') ||
+        l.includes('lime') || l.includes('pineapple') || l.includes('prune') ||
+        l.includes('raisin') || l.includes('date')) return 'Fruits & Vegetables';
+    if (l.includes('vegetable') || l.includes('carrot') || l.includes('mushroom') ||
+        l.includes('garlic') || l.includes('salad') || l.includes('potato') ||
+        l.includes('onion') || l.includes('tomato') || l.includes('cucumber')) return 'Fruits & Vegetables';
+    if (l.includes('kitniyot') || l.includes('corn') || l.includes('rice') ||
+        l.includes('beans') || l.includes('pea') || l.includes('lentil') ||
+        l.includes('chickpea') || l.includes('soybean') || l.includes('tofu') ||
+        l.includes('sesame') || l.includes('sunflower') || l.includes('mustard') ||
+        l.includes('buckwheat') || l.includes('kasha') || l.includes('popcorn') ||
+        l.includes('edamame') || l.includes('quinoa') || l.includes('peanut') ||
+        l.includes('canola') || l.includes('poppy') || l.includes('wild rice')) return 'Kitniyot Products';
+    if (l.includes('meat') || l.includes('chicken') || l.includes('turkey') ||
+        l.includes('poultry') || l.includes('beef') || l.includes('veal') ||
+        l.includes('lamb')) return 'Meat & Poultry';
+    if (l.includes('fish') || l.includes('salmon') || l.includes('tuna') ||
+        l.includes('trout') || l.includes('herring')) return 'Fish Products';
+    if (l.includes('cheese') || l.includes('butter') || l.includes('yogurt') ||
+        l.includes('cream') || l.includes('dairy') || l.includes('lactaid')) return 'Dairy';
+    if (l.includes('egg')) return 'Egg Products';
+    if (l.includes('salt')) return 'Salt';
+    if (l.includes('spice') || l.includes('pepper') || l.includes('cinnamon') ||
+        l.includes('vanilla')) return 'Spices & Seasonings';
+    if (l.includes('vinegar') || l.includes('ketchup') || l.includes('mustard') ||
+        l.includes('mayonnaise') || l.includes('pickle') || l.includes('jam') ||
+        l.includes('jelly')) return 'Condiments';
+    if (l.includes('matzah') || l.includes('matzo') || l.includes('baking') ||
+        l.includes('flour') || l.includes('cocoa') || l.includes('chocolate')) return 'Cooking & Baking';
+    if (l.includes('medicine') || l.includes('vitamin') || l.includes('supplement')) return 'Medicine';
+    if (l.includes('ice cream') || l.includes('frozen') || l.includes('sherbert')) return 'Ice Cream & Frozen Novelties';
+    if (l.includes('baby food') || l.includes('baby formula') || l.includes('enfamil') ||
+        l.includes('similac')) return 'Breakfast Foods';
+    if (l.includes('gum') || l.includes('candy') || l.includes('dessert') ||
+        l.includes('pudding')) return 'Candy & Chocolate';
+    if (l.includes('potato chips') || l.includes('snack')) return 'Snacks & Desserts';
+    return 'Food & Pantry';
+  }
+
+  const items: RawItem[] = [];
+  let currentParent = '';
+  let inNonEdible = false;
+
+  for (const line of lines) {
+    if (!line) continue;
+    if (NOISE_PATTERNS.some(p => p.test(line))) continue;
+
+    // Detect transition to non-edible section
+    if (/^Alcohol \(Isopropyl\)No/.test(line) ||
+        (/^Alcohol/.test(line) && line.includes('No certification required') && !inNonEdible && items.length > 20)) {
+      inNonEdible = true;
+    }
+
+    // Section label line for non-edible
+    if (line === 'Non-Edible' || line === 'products') continue;
+
+    const isBullet = line.startsWith('•') || line.startsWith('-');
+    const parsed = splitProductLine(line);
+
+    if (!parsed) {
+      // Might be an ALL-CAPS parent header
+      if (isUpperCaseLine(line) && line.length >= 2 && line.length <= 60 && !line.includes('|')) {
+        currentParent = titleCase(line);
+      }
+      continue;
+    }
+
+    let { name, status, notes } = parsed;
+
+    // Attach parent name for sub-items
+    if (isBullet && currentParent) {
+      name = `${currentParent} - ${name}`;
+    }
+
+    // Skip if too short, too long, or a cross-reference
+    if (!name || name.length < 3 || name.length > 120) continue;
+    if (/^see /i.test(name)) continue;
+
+    // Clean up name
+    name = name.replace(/\s+/g, ' ').trim();
+
+    const category = getCORCategory(name, inNonEdible);
+    const isKitniyotStatus = status === 'kitniyot';
+    const isNonFoodFlag = inNonEdible || ['Non-Food', 'Household'].includes(category);
+
+    items.push({
+      id: makeId('COR', 'passover-guide-2026', category, name),
+      productName: name,
+      category,
+      status,
+      conditions: notes,
+      notes,
+      org: 'COR',
+      sourceSlug: 'cor-passover-2026',
+      sourceTitle: 'COR Passover Guide 5786',
+      pageNumber: null,
+      isNonFood: isNonFoodFlag,
+      isKitniyot: isKitniyotStatus,
+      askRabbi: status === 'ask_rabbi',
+    });
+
+    // Clear parent after a top-level (non-bullet) item
+    if (!isBullet) currentParent = '';
+  }
+
+  return items;
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -1153,7 +1397,22 @@ async function main() {
     console.error('❌ Error parsing Star-K:', e);
   }
 
-  // 7. COR Costco (image — OCR skipped, placeholder)
+  // 7. COR Passover Guide 2026
+  try {
+    const p = path.join(__dirname, '..', 'public', 'pdfs', 'COR-Passover-2026_final.pdf');
+    if (fs.existsSync(p)) {
+      const data = await pdfParse(fs.readFileSync(p));
+      const items = parseCORPassover2026(data.text);
+      allItems.push(...items);
+      console.log(`✅ COR Passover 2026: ${items.length} items`);
+    } else {
+      console.log('⚠️  COR-Passover-2026_final.pdf not found');
+    }
+  } catch (e) {
+    console.error('❌ Error parsing COR Passover 2026:', e);
+  }
+
+  // 8. COR Costco (image — OCR skipped, placeholder)
   console.log('ℹ️  COR Costco image: OCR not implemented (add tesseract.js to enable)');
 
   // De-duplicate by ID

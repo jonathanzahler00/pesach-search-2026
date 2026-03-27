@@ -1,7 +1,7 @@
 {
   "name": "Pesach Search",
   "short_name": "Pesach",
-  "description": "Is it Kosher for Pesach? Search 3,842 products from OU, CRC & Star-K instantly.",
+  "description": "Is it Kosher for Pesach? Search 4,042 products from OU, CRC, Star-K & COR instantly.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a2744",

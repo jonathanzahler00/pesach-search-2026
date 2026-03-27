@@ -31,3 +31,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Large PDFs that exceed GitHub's 100 MB file limit
+# (parsed data lives in src/data/items.json — add these manually to Vercel via dashboard)
+public/pdfs/COR-Passover-2026_final.pdf

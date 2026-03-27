@@ -22,7 +22,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Pesach Search — Kosher for Passover?',
-  description: 'Is it Kosher for Pesach? Search 3,842 products from OU, CRC & Star-K instantly. Scan barcodes or search by name.',
+  description: 'Is it Kosher for Pesach? Search 4,042 products from OU, CRC, Star-K & COR instantly. Scan barcodes or search by name.',
   keywords: 'kosher, passover, pesach, OU, CRC, Star-K, COR, kitniyot, food guide',
   manifest: '/manifest.json',
   appleWebApp: {
