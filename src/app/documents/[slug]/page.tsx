@@ -30,15 +30,17 @@ function DocumentViewerInner() {
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-start gap-3 mb-4">
         <Link
           href="/documents"
-          className="text-sm text-primary-400 hover:text-primary-600 transition-colors"
+          className="shrink-0 text-primary-400 hover:text-primary-600 transition-colors p-1 -m-1"
+          aria-label="Back to documents"
         >
-          ← All Documents
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
         </Link>
-        <span className="text-primary-200">|</span>
-        <h2 className="font-display text-xl font-bold text-primary-900">
+        <h2 className="font-display text-lg sm:text-xl font-bold text-primary-900 leading-snug">
           {source.org}: {source.title}
         </h2>
       </div>
@@ -84,7 +86,7 @@ function DocumentViewerInner() {
               src={`${fileUrl}#page=${initialPage}`}
               className="w-full h-full border-0"
               title={source.title}
-              style={{ minHeight: 'calc(100vh - 200px)' }}
+              style={{ minHeight: 'calc(100dvh - 180px)' }}
             />
           </div>
         )}
