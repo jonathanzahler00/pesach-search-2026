@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "ou-yearround",
+    "org": "OU",
+    "orgFull": "Orthodox Union",
+    "title": "Year-Round Products Approved for Pesach",
+    "fileName": "OU-yearround.pdf",
+    "fileType": "pdf",
+    "pageCount": 12,
+    "description": "Products certified year-round that are kosher for Passover without special Pesach certification. Includes coffee, oils, nuts, sugar, salt, and more."
+  },
+  {
+    "slug": "ou-main",
+    "org": "OU",
+    "orgFull": "Orthodox Union",
+    "title": "OU Passover Guide 5786",
+    "fileName": "OU.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "The main OU Passover consumer guide with comprehensive product listings and Pesach information."
+  },
+  {
+    "slug": "ou-kitniyos",
+    "org": "OU",
+    "orgFull": "Orthodox Union",
+    "title": "Kitniyot Guide",
+    "fileName": "OU-kitniyos.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "OU guide specifically addressing kitniyot products and their status for Pesach."
+  },
+  {
+    "slug": "ou-nonfood",
+    "org": "OU",
+    "orgFull": "Orthodox Union",
+    "title": "Non-Food Items & Medicine Guidelines",
+    "fileName": "OU-nonfood.pdf",
+    "fileType": "pdf",
+    "pageCount": 1,
+    "description": "Non-food items that may be used on Passover without certification, plus detailed medicine guidelines."
+  },
+  {
+    "slug": "ou-specifics",
+    "org": "OU",
+    "orgFull": "Orthodox Union",
+    "title": "Specific Product Listings",
+    "fileName": "OU-specifics.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "Detailed listings of specific products and their Pesach status from the OU."
+  },
+  {
+    "slug": "crc",
+    "org": "CRC",
+    "orgFull": "Chicago Rabbinical Council",
+    "title": "CRC Passover Guide",
+    "fileName": "crc.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "The Chicago Rabbinical Council's comprehensive Passover product guide."
+  },
+  {
+    "slug": "star-k",
+    "org": "Star-K",
+    "orgFull": "Star-K Kosher Certification",
+    "title": "Star-K Passover Guide",
+    "fileName": "star-k.pdf",
+    "fileType": "pdf",
+    "pageCount": null,
+    "description": "Star-K's Passover guide with product listings and kosher for Pesach information."
+  },
+  {
+    "slug": "cor-costco",
+    "org": "COR",
+    "orgFull": "Kashruth Council of Canada",
+    "title": "COR Costco Passover List",
+    "fileName": "COR_Costco.png",
+    "fileType": "image",
+    "pageCount": null,
+    "description": "COR's Costco-specific product list for Passover."
+  }
+]
