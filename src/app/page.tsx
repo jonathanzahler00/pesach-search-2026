@@ -89,7 +89,7 @@ function HomeInner() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterOrg, setFilterOrg] = useState<string>('all');
-  const [filterBrand, setFilterBrand] = useState<string>('all');
+  const [filterBrand, setFilterBrand] = useState<string>('');
   const [reportProduct, setReportProduct] = useState<string | null>(null);
 
   useEffect(() => {
@@ -99,7 +99,7 @@ function HomeInner() {
 
   // Reset brand filter whenever the query changes
   useEffect(() => {
-    setFilterBrand('all');
+    setFilterBrand('');
   }, [query]);
 
   const totalCount = getTotalCount();
@@ -115,16 +115,11 @@ function HomeInner() {
     return r;
   }, [query, filterStatus, filterOrg]);
 
-  // Unique brand/company names from pre-filtered results
-  const brandOptions = useMemo(() => {
-    const names = new Set(preFilteredResults.map(r => r.item.productName));
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [preFilteredResults]);
-
-  // Final results with brand filter applied on top
+  // Final results with brand text filter applied on top
   const results = useMemo(() => {
-    if (filterBrand === 'all') return preFilteredResults;
-    return preFilteredResults.filter(r => r.item.productName === filterBrand);
+    if (!filterBrand.trim()) return preFilteredResults;
+    const lower = filterBrand.trim().toLowerCase();
+    return preFilteredResults.filter(r => r.item.productName.toLowerCase().includes(lower));
   }, [preFilteredResults, filterBrand]);
 
   return (
@@ -159,7 +154,7 @@ function HomeInner() {
             </Link>
           </div>
 
-          {/* Filters — full width on mobile, side by side on sm+ */}
+          {/* Filters */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-center sm:gap-3">
             <select
               value={filterStatus}
@@ -186,18 +181,23 @@ function HomeInner() {
               ))}
             </select>
 
-            {/* Brand / company filter — always visible; options populate from current search results */}
-            <select
-              value={filterBrand}
-              onChange={(e) => setFilterBrand(e.target.value)}
-              disabled={brandOptions.length === 0}
-              className="col-span-2 sm:col-span-1 px-3 py-2 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="all">{brandOptions.length > 0 ? 'All Companies' : 'All Companies'}</option>
-              {brandOptions.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+            {/* Brand / company text filter — type to narrow results by brand name */}
+            <div className="col-span-2 sm:col-span-1 relative w-full sm:w-auto">
+              <input
+                type="text"
+                value={filterBrand}
+                onChange={(e) => setFilterBrand(e.target.value)}
+                placeholder="Filter by brand…"
+                className="px-3 py-2 pr-7 rounded-lg border border-primary-200 bg-white text-primary-700 text-sm w-full placeholder:text-primary-300 focus:border-gold-400 focus:outline-none"
+              />
+              {filterBrand && (
+                <button
+                  onClick={() => setFilterBrand('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-primary-300 hover:text-primary-600 text-lg leading-none"
+                  aria-label="Clear brand filter"
+                >×</button>
+              )}
+            </div>
           </div>
         </div>
       </section>
