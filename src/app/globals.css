@@ -35,6 +35,16 @@ body {
   min-height: 500px;
 }
 
+/* Barcode scanner sweep line */
+@keyframes scan-sweep {
+  0%   { top: 0; }
+  50%  { top: calc(100% - 2px); }
+  100% { top: 0; }
+}
+.scan-line {
+  animation: scan-sweep 2s ease-in-out infinite;
+}
+
 /* Smooth page transitions */
 .page-transition {
   animation: fadeIn 0.2s ease-out;

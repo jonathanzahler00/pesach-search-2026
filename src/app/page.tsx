@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { searchItems, getTotalCount, getCategories, getOrgs } from '@/lib/search';
 import { STATUS_CONFIG, ORG_CONFIG } from '@/lib/types';
 import type { SearchResult, ItemStatus, OrgCode } from '@/lib/types';
@@ -74,10 +75,16 @@ function ProductCard({ result }: { result: SearchResult }) {
   );
 }
 
-export default function HomePage() {
-  const [query, setQuery] = useState('');
+function HomeInner() {
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterOrg, setFilterOrg] = useState<string>('all');
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) setQuery(q);
+  }, [searchParams]);
 
   const totalCount = getTotalCount();
   const categories = getCategories();
@@ -104,15 +111,24 @@ export default function HomePage() {
 
         {/* Search input */}
         <div className="max-w-2xl mx-auto space-y-2">
-          <input
-            type="search"
-            inputMode="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a product or brand..."
-            className="search-input w-full px-4 py-3.5 text-base sm:text-lg rounded-xl border-2 border-primary-200 bg-white placeholder:text-primary-300 focus:border-gold-400 focus:outline-none"
-            autoFocus
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="search"
+              inputMode="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search a product or brand..."
+              className="search-input flex-1 px-4 py-3.5 text-base sm:text-lg rounded-xl border-2 border-primary-200 bg-white placeholder:text-primary-300 focus:border-gold-400 focus:outline-none"
+              autoFocus
+            />
+            <Link
+              href="/scan"
+              className="shrink-0 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-primary-900 hover:bg-primary-800 active:bg-primary-800 text-white rounded-xl transition-colors"
+              title="Scan a barcode"
+            >
+              <span className="text-xl sm:text-2xl">📷</span>
+            </Link>
+          </div>
 
           {/* Filters — full width on mobile, side by side on sm+ */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-center sm:gap-3">
@@ -223,5 +239,13 @@ export default function HomePage() {
         </section>
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12 text-primary-400">Loading…</div>}>
+      <HomeInner />
+    </Suspense>
   );
 }

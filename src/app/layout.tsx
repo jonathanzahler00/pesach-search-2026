@@ -63,6 +63,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/medicine" className="px-3 py-1.5 rounded-md hover:bg-primary-800 transition-colors">
                 Medicine
               </Link>
+              <Link href="/scan" className="ml-1 px-3 py-1.5 rounded-md bg-gold-500 hover:bg-gold-400 text-primary-900 font-semibold transition-colors">
+                📷 Scan
+              </Link>
             </nav>
           </div>
         </header>

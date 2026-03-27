@@ -11,6 +11,8 @@
     "extract": "npx tsx scripts/extract-data.ts"
   },
   "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "fuse.js": "^7.0.0",
     "next": "^16.2.1",
     "react": "^19.2.4",
