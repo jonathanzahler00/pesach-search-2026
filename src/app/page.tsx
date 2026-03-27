@@ -6,6 +6,7 @@ import { searchItems, getTotalCount, getCategories, getOrgs } from '@/lib/search
 import { STATUS_CONFIG, ORG_CONFIG } from '@/lib/types';
 import type { SearchResult, ItemStatus, OrgCode } from '@/lib/types';
 import Link from 'next/link';
+import FeedbackDrawer from '@/components/FeedbackDrawer';
 
 function StatusBadge({ status }: { status: ItemStatus }) {
   const config = STATUS_CONFIG[status];
@@ -27,7 +28,7 @@ function OrgBadge({ org }: { org: OrgCode }) {
   );
 }
 
-function ProductCard({ result }: { result: SearchResult }) {
+function ProductCard({ result, onReport }: { result: SearchResult; onReport: (name: string) => void }) {
   const { item } = result;
   const sourceUrl = item.sourceSlug
     ? `/documents/${item.sourceSlug}${item.pageNumber ? `?page=${item.pageNumber}` : ''}`
@@ -64,13 +65,21 @@ function ProductCard({ result }: { result: SearchResult }) {
         <p className="text-xs text-primary-400 line-clamp-2 mb-2">{item.notes}</p>
       )}
 
-      {/* Source link */}
-      <Link
-        href={sourceUrl}
-        className="inline-flex items-center gap-1 text-xs text-gold-600 font-medium active:underline"
-      >
-        📄 {item.sourceTitle}{item.pageNumber ? `, p.${item.pageNumber}` : ''}
-      </Link>
+      {/* Footer: source link + report */}
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href={sourceUrl}
+          className="inline-flex items-center gap-1 text-xs text-gold-600 font-medium"
+        >
+          📄 {item.sourceTitle}{item.pageNumber ? `, p.${item.pageNumber}` : ''}
+        </Link>
+        <button
+          onClick={() => onReport(item.productName)}
+          className="text-xs text-primary-300 hover:text-primary-500 active:text-primary-500 transition-colors shrink-0"
+        >
+          Report
+        </button>
+      </div>
     </div>
   );
 }
@@ -80,6 +89,7 @@ function HomeInner() {
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterOrg, setFilterOrg] = useState<string>('all');
+  const [reportProduct, setReportProduct] = useState<string | null>(null);
 
   useEffect(() => {
     const q = searchParams.get('q');
@@ -179,7 +189,7 @@ function HomeInner() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {results.map((r) => (
-                <ProductCard key={r.item.id} result={r} />
+                <ProductCard key={r.item.id} result={r} onReport={(name) => setReportProduct(name)} />
               ))}
             </div>
           )}
@@ -238,6 +248,13 @@ function HomeInner() {
           </p>
         </section>
       )}
+
+      {/* Report issue drawer (opened from product card "Report" button) */}
+      <FeedbackDrawer
+        open={reportProduct !== null}
+        onClose={() => setReportProduct(null)}
+        prefillProduct={reportProduct ?? ''}
+      />
     </div>
   );
 }

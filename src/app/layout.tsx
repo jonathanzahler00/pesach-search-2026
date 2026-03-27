@@ -4,6 +4,7 @@ import './globals.css';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import ServiceWorker from '@/components/ServiceWorker';
+import FeedbackButton from '@/components/FeedbackButton';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -95,6 +96,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Mobile bottom tab navigation */}
         <BottomNav />
+
+        {/* Floating feedback button */}
+        <FeedbackButton />
 
         {/* Footer — desktop only */}
         <footer className="hidden sm:block border-t border-primary-100 mt-8 py-6 text-center text-xs text-primary-400">
