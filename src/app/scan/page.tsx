@@ -137,6 +137,9 @@ export default function ScanPage() {
             <p>1. Scan or upload a product barcode</p>
             <p>2. We look it up in the Open Food Facts database</p>
             <p>3. We check the product name against OU, CRC &amp; Star-K guides</p>
+            <p className="text-primary-400 pt-1">
+              <strong>Note:</strong> Camera requires HTTPS. If using the live app at vercel.app it will work. On first use, tap &ldquo;Allow&rdquo; when the browser asks for camera permission.
+            </p>
           </div>
         </div>
       )}

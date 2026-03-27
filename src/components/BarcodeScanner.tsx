@@ -9,10 +9,16 @@ interface Props {
   active: boolean;
 }
 
+type CameraError =
+  | { type: 'not_secure' }
+  | { type: 'denied' }
+  | { type: 'not_found' }
+  | { type: 'generic'; message: string };
+
 export default function BarcodeScanner({ onDetected, active }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CameraError | null>(null);
   const [ready, setReady] = useState(false);
 
   const stop = useCallback(() => {
@@ -22,21 +28,21 @@ export default function BarcodeScanner({ onDetected, active }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!active) {
-      stop();
+    if (!active) { stop(); return; }
+
+    // Camera requires a secure context (HTTPS or localhost)
+    if (!window.isSecureContext) {
+      setError({ type: 'not_secure' });
       return;
     }
 
     const reader = new BrowserMultiFormatReader();
 
     reader
-      .decodeFromVideoDevice(undefined, videoRef.current!, (result, err) => {
+      .decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
         if (result) {
           onDetected(result.getText());
           stop();
-        }
-        if (err && !(err.message?.includes('No MultiFormat Readers'))) {
-          // Suppress the common "no barcode found in frame" noise
         }
       })
       .then((controls) => {
@@ -45,26 +51,15 @@ export default function BarcodeScanner({ onDetected, active }: Props) {
         setError(null);
       })
       .catch((err: Error) => {
-        if (err.name === 'NotAllowedError') {
-          setError('Camera access denied. Please allow camera access and try again.');
-        } else if (err.name === 'NotFoundError') {
-          setError('No camera found on this device.');
-        } else {
-          setError('Could not start camera. Try uploading a photo instead.');
-        }
+        if (err.name === 'NotAllowedError') setError({ type: 'denied' });
+        else if (err.name === 'NotFoundError') setError({ type: 'not_found' });
+        else setError({ type: 'generic', message: err.message });
       });
 
     return () => stop();
   }, [active, onDetected, stop]);
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center bg-gray-900 rounded-2xl p-8 text-center gap-3 min-h-[260px]">
-        <span className="text-4xl">📷</span>
-        <p className="text-white text-sm">{error}</p>
-      </div>
-    );
-  }
+  if (error) return <CameraErrorView error={error} />;
 
   return (
     <div className="relative rounded-2xl overflow-hidden bg-black">
@@ -75,40 +70,25 @@ export default function BarcodeScanner({ onDetected, active }: Props) {
         muted
       />
 
-      {/* Viewfinder overlay */}
       {ready && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {/* Dark surround */}
           <div className="absolute inset-0 bg-black/40" />
-
-          {/* Clear scan window */}
-          <div
-            className="relative z-10 rounded-lg"
-            style={{ width: '72%', aspectRatio: '3/2' }}
-          >
-            {/* Corner brackets */}
-            {(['tl','tr','bl','br'] as const).map((corner) => (
-              <span
-                key={corner}
-                className="absolute w-7 h-7 border-white border-[3px]"
-                style={{
-                  top: corner.startsWith('t') ? 0 : 'auto',
-                  bottom: corner.startsWith('b') ? 0 : 'auto',
-                  left: corner.endsWith('l') ? 0 : 'auto',
-                  right: corner.endsWith('r') ? 0 : 'auto',
-                  borderRight: corner.endsWith('l') ? 'none' : undefined,
-                  borderLeft: corner.endsWith('r') ? 'none' : undefined,
-                  borderBottom: corner.startsWith('t') ? 'none' : undefined,
-                  borderTop: corner.startsWith('b') ? 'none' : undefined,
-                  borderRadius: corner === 'tl' ? '4px 0 0 0' : corner === 'tr' ? '0 4px 0 0' : corner === 'bl' ? '0 0 0 4px' : '0 0 4px 0',
-                }}
-              />
+          <div className="relative z-10 rounded-lg" style={{ width: '72%', aspectRatio: '3/2' }}>
+            {(['tl','tr','bl','br'] as const).map((c) => (
+              <span key={c} className="absolute w-7 h-7 border-white border-[3px]" style={{
+                top: c.startsWith('t') ? 0 : 'auto',
+                bottom: c.startsWith('b') ? 0 : 'auto',
+                left: c.endsWith('l') ? 0 : 'auto',
+                right: c.endsWith('r') ? 0 : 'auto',
+                borderRight: c.endsWith('l') ? 'none' : undefined,
+                borderLeft: c.endsWith('r') ? 'none' : undefined,
+                borderBottom: c.startsWith('t') ? 'none' : undefined,
+                borderTop: c.startsWith('b') ? 'none' : undefined,
+                borderRadius: c === 'tl' ? '4px 0 0 0' : c === 'tr' ? '0 4px 0 0' : c === 'bl' ? '0 0 0 4px' : '0 0 4px 0',
+              }} />
             ))}
-
-            {/* Scanning line animation */}
             <div className="absolute inset-x-0 top-0 h-0.5 bg-red-500/90 scan-line" />
           </div>
-
           <p className="absolute bottom-4 left-0 right-0 text-center text-white/80 text-xs font-medium">
             Point camera at a barcode
           </p>
@@ -126,6 +106,46 @@ export default function BarcodeScanner({ onDetected, active }: Props) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CameraErrorView({ error }: { error: CameraError }) {
+  const content = {
+    not_secure: {
+      icon: '🔒',
+      title: 'HTTPS required for camera',
+      body: 'Camera access only works on secure connections. Use the live app at pesach-search-2026.vercel.app, or upload a photo below instead.',
+    },
+    denied: {
+      icon: '🚫',
+      title: 'Camera access denied',
+      body: (
+        <>
+          To fix this:
+          <br /><strong>iPhone:</strong> Settings → Safari → Camera → Allow
+          <br /><strong>Android:</strong> Browser menu → Site settings → Camera → Allow
+          <br /><br />Or upload a photo instead.
+        </>
+      ),
+    },
+    not_found: {
+      icon: '📷',
+      title: 'No camera found',
+      body: 'This device doesn\'t have an accessible camera. Use the "Upload a photo" option below.',
+    },
+    generic: {
+      icon: '⚠️',
+      title: 'Could not start camera',
+      body: 'Try the "Upload a photo" option below instead.',
+    },
+  }[error.type];
+
+  return (
+    <div className="flex flex-col items-center justify-center bg-gray-900 rounded-2xl p-6 text-center gap-3 min-h-[220px]">
+      <span className="text-4xl">{content.icon}</span>
+      <p className="text-white font-semibold text-sm">{content.title}</p>
+      <p className="text-gray-300 text-xs leading-relaxed">{content.body}</p>
     </div>
   );
 }

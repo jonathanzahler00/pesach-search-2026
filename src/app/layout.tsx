@@ -3,6 +3,7 @@ import { Playfair_Display, DM_Sans } from 'next/font/google';
 import './globals.css';
 import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
+import ServiceWorker from '@/components/ServiceWorker';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -20,20 +21,37 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: 'Pesach Search — Kosher for Passover?',
-  description: 'Search 3,842 products across OU, CRC, and Star-K kosher-for-Passover guides. Instant answers with source links.',
+  description: 'Is it Kosher for Pesach? Search 3,842 products from OU, CRC & Star-K instantly. Scan barcodes or search by name.',
   keywords: 'kosher, passover, pesach, OU, CRC, Star-K, COR, kitniyot, food guide',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Pesach Search',
+    startupImage: '/icons/icon-512.png',
+  },
+  icons: {
+    apple: '/icons/icon-192.png',
+    icon: '/icons/icon-512.png',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  themeColor: '#1a2744',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={`min-h-screen ${playfair.variable} ${dmSans.variable}`}>
+        <ServiceWorker />
+
         {/* Header */}
         <header className="bg-primary-900 text-white sticky top-0 z-50 shadow-lg">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
