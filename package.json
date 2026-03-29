@@ -11,6 +11,7 @@
     "extract": "npx tsx scripts/extract-data.ts"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "fuse.js": "^7.0.0",
