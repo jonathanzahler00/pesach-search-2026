@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import ServiceWorker from '@/components/ServiceWorker';
 import FeedbackButton from '@/components/FeedbackButton';
+import { Analytics } from '@vercel/analytics/next';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -107,6 +108,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             This tool is for reference only. Always consult your rabbi for specific halachic questions.
           </p>
         </footer>
+
+        {/* Vercel Analytics */}
+        <Analytics />
       </body>
     </html>
   );
