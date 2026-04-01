@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BottomNav from '@/components/BottomNav';
 import ServiceWorker from '@/components/ServiceWorker';
 import FeedbackButton from '@/components/FeedbackButton';
+import { Analytics } from '@vercel/analytics/next';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -21,9 +22,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Pesach Search — Kosher for Passover?',
+  title: 'Pesach Search | Kosher for Pesach?',
   description: 'Is it Kosher for Pesach? Search 4,042 products from OU, CRC, Star-K & COR instantly. Scan barcodes or search by name.',
-  keywords: 'kosher, passover, pesach, OU, CRC, Star-K, COR, kitniyot, food guide',
+  keywords: 'kosher, pesach, OU, CRC, Star-K, COR, kitniyot, food guide',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -100,12 +101,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Floating feedback button */}
         <FeedbackButton />
 
-        {/* Footer — desktop only */}
-        <footer className="hidden sm:block border-t border-primary-100 mt-8 py-6 text-center text-xs text-primary-400">
-          <p>Data sourced from OU, CRC, Star-K, and COR Passover guides for 5786 (2026).</p>
+        <Analytics />
+
+        {/* Footer */}
+        <footer className="border-t border-primary-100 mt-8 py-6 pb-24 sm:pb-6 text-center text-xs text-primary-400">
+          <p>Data sourced from OU, CRC, Star-K, and COR Pesach guides for 5786 (2026).</p>
           <p className="mt-1">
             This tool is for reference only. Always consult your rabbi for specific halachic questions.
           </p>
+          <p className="mt-2">&copy; Y. Zahler 2026</p>
         </footer>
       </body>
     </html>

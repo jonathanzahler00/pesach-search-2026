@@ -1,4 +1,4 @@
-const CACHE = 'pesach-v1';
+const CACHE = 'pesach-v2';
 
 // App shell + data to cache on install
 const PRECACHE = [
@@ -36,6 +36,8 @@ self.addEventListener('fetch', (e) => {
   if (request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
   if (url.pathname.startsWith('/api/')) return;
+  // Vercel Web Analytics / platform — must not be cached or intercepted oddly
+  if (url.pathname.startsWith('/_vercel/')) return;
 
   // Stale-while-revalidate for everything else
   e.respondWith(

@@ -18,12 +18,14 @@ const pageSecurityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Vercel Web Analytics: debug script (dev) + same-origin /_vercel/insights/script.js (prod)
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://images.openfoodfacts.org",
       "frame-src 'self'",
-      "connect-src 'self' https://world.openfoodfacts.org",
+      // Vercel Web Analytics beacons (vitals + dashboard) + product barcode API
+      "connect-src 'self' https://world.openfoodfacts.org https://vitals.vercel-insights.com https://vercel.live",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -9,7 +9,7 @@ export default function DocumentsPage() {
         Source Documents
       </h2>
       <p className="text-primary-500 mb-6">
-        View each kosher-for-Passover guide in full. Click to open the document.
+        View each kosher-for-Pesach guide in full. Click to open the document.
       </p>
 
       <div className="grid md:grid-cols-2 gap-4">
