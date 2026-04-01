@@ -1614,9 +1614,15 @@ async function main() {
   // 8. COR Costco (image — OCR skipped, placeholder)
   console.log('ℹ️  COR Costco image: OCR not implemented (add tesseract.js to enable)');
 
+  // Remove known parser artifacts that can still appear around section boundaries.
+  const cleanedItems = allItems.filter(item =>
+    item.id !== 'ou-specifics-salt-zeta-dairy' &&
+    item.id !== 'ou-specifics-sugar-y-o-t-vata-dairy'
+  );
+
   // De-duplicate by ID
   const seen = new Set<string>();
-  const deduped = allItems.filter(item => {
+  const deduped = cleanedItems.filter(item => {
     if (seen.has(item.id)) return false;
     seen.add(item.id);
     return true;
@@ -1627,7 +1633,7 @@ async function main() {
   fs.writeFileSync(outputPath, JSON.stringify(deduped, null, 2));
 
   console.log(`\n📦 Written ${deduped.length} total items to ${outputPath}`);
-  console.log(`   (${allItems.length - deduped.length} duplicates removed)`);
+  console.log(`   (${cleanedItems.length - deduped.length} duplicates removed)`);
 
   // Summary by org
   const orgCounts = deduped.reduce((acc, item) => {

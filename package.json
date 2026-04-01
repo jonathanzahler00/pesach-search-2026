@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "extract": "npx tsx scripts/extract-data.ts"
+    "extract": "npx tsx scripts/extract-data.ts && python scripts/enrich-page-numbers.py"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
