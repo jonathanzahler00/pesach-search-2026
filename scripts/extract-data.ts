@@ -735,11 +735,33 @@ function parseCRC(text: string): RawItem[] {
     /^Kosher for Pesach$/,
   ];
 
-  function inferStatus(productName: string, notes: string): RawItem['status'] {
+  function isStatusSymbol(line: string): line is '' | '' | '' {
+    return line === '' || line === '' || line === '';
+  }
+
+  function escapeRegex(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function inferStatus(
+    productName: string,
+    notes: string,
+    symbol: '' | '' | '' | null,
+  ): RawItem['status'] {
     const lowerNotes = notes.toLowerCase();
     const lowerName = productName.toLowerCase();
 
     if (lowerNotes.includes('kitniyos') || lowerNotes.includes('same status as kitniyos')) return 'kitniyot';
+    if (lowerNotes.includes('ask your rabbi') || lowerNotes.includes('consult your rabbi')) return 'ask_rabbi';
+    if (lowerNotes.includes('see page 14') || lowerNotes.includes('see pages 14') ||
+        lowerNotes.includes('see page 19') || lowerNotes.includes('see pages 19') ||
+        lowerNotes.includes('see page 24') || lowerNotes.includes('see pages 24')) return 'ask_rabbi';
+    if (lowerNotes.includes('see page') || lowerNotes.includes('see pages') ||
+        lowerNotes.includes('see bit.ly') || lowerNotes.includes('see www')) return 'conditional';
+
+    if (symbol === '') return 'not_approved';
+    if (symbol === '') return 'conditional';
+
     if (lowerNotes.includes('chametz')) return 'not_approved';
     if (lowerNotes.includes('not acceptable')) return 'not_approved';
     if (lowerNotes.includes('requires pesach certification') ||
@@ -747,8 +769,6 @@ function parseCRC(text: string): RawItem[] {
         lowerNotes.includes('require pesach') ||
         lowerNotes.includes('must bear')) return 'conditional';
     if (lowerNotes.includes('requires') && lowerNotes.includes('certif')) return 'conditional';
-    if (lowerNotes.includes('see pages') || lowerNotes.includes('see page') ||
-        lowerNotes.includes('see bit.ly') || lowerNotes.includes('see www')) return 'conditional';
     if (lowerNotes.includes('acceptable if') || lowerNotes.includes('if certified') ||
         lowerNotes.includes('when certified') || lowerNotes.includes('when produced in the usa')) return 'conditional';
 
@@ -762,8 +782,26 @@ function parseCRC(text: string): RawItem[] {
     return 'approved';
   }
 
-  // Parse product-notes pairs
-  let i = 0;
+  function looksLikeProductStart(lines: string[], idx: number): boolean {
+    const line = lines[idx];
+    if (!line || isStatusSymbol(line) || /^[a-z]/.test(line)) return false;
+    if (/^(For|When|If|Only|Includes|Same|See|Acceptable|Requires|Must|Kitniyos|Chametz|Recommended|Cleaned|Contains|Concentrate|Canned|Raw|Dried|Fresh|Cooked)\b/.test(line)) {
+      return false;
+    }
+
+    const next = lines[idx + 1] ?? '';
+    const next2 = lines[idx + 2] ?? '';
+    const firstWord = line.split(/\s+/)[0];
+
+    if (isStatusSymbol(next)) return true;
+    if (/^See page/i.test(next)) return true;
+    if (/^(Acceptable|Requires|Must|When|If|Only|Includes|Kitniyos|Chametz|Recommended)\b/.test(next)) return true;
+    if (firstWord && new RegExp(`^${escapeRegex(firstWord)}\\b`, 'i').test(next)) return true;
+    if (/^[a-z]/.test(next) && isStatusSymbol(next2)) return true;
+
+    return false;
+  }
+
   const filteredLines: string[] = [];
 
   for (const line of lines) {
@@ -772,57 +810,60 @@ function parseCRC(text: string): RawItem[] {
     filteredLines.push(line);
   }
 
-  // The CRC table structure: product name line, then notes lines, repeated
-  // We parse pairs: consecutive lines where first is product, second is notes
   let idx = 0;
   while (idx < filteredLines.length) {
-    const line = filteredLines[idx];
-
-    // A product entry starts with a capitalized word (title case or proper name)
-    // and is typically shorter and doesn't start with lowercase
-    if (!line || /^[a-z]/.test(line)) {
+    if (!looksLikeProductStart(filteredLines, idx)) {
       idx++;
       continue;
     }
 
-    // Collect the product name (may span one or two lines)
-    let productName = line;
-    let notesLines: string[] = [];
-    idx++;
+    const productParts = [filteredLines[idx]];
+    let cursor = idx + 1;
 
-    // Collect following notes lines (start with lowercase or are clearly notes)
-    while (idx < filteredLines.length) {
-      const next = filteredLines[idx];
-      if (!next) { idx++; continue; }
-      // Stop if it looks like a new product (starts with uppercase, looks like product name)
-      if (/^[A-Z][a-z]/.test(next) && !notesLines.length) {
-        // Could be continuation of product name or start of notes
-        // If it starts with a verb like "See", "Acceptable", "Kitniyos", etc. → notes
-        if (/^(See|Acceptable|Kitniyos|Chametz|Same|Contains|Includes|When|Buy|Requires|Must|Cleaned|If|For|Only|Some|Sweetened|Unsweetened|Beans|Seeds|Leaves|Fresh|Canned|Peeled|Ground|Powdered|Whole|Pure|Raw|Dried|Other|Cooked|Not|Any)/.test(next)) {
-          notesLines.push(next);
-          idx++;
-        } else {
-          break;
-        }
-      } else if (/^[a-z]/.test(next)) {
-        // Definitely a continuation of notes
-        notesLines.push(next);
-        idx++;
-      } else {
-        break;
-      }
+    // Some product names wrap onto the next line before the symbol, e.g.:
+    // "Denatured or Isopropyl" + "alcohol" + ""
+    if (/^[a-z]/.test(filteredLines[cursor] ?? '') && isStatusSymbol(filteredLines[cursor + 1] ?? '')) {
+      productParts.push(filteredLines[cursor]);
+      cursor++;
     }
 
-    const notes = notesLines.join(' ');
-    const status = inferStatus(productName, notes);
+    const productName = productParts.join(' ').replace(/\s+/g, ' ').trim();
+    let symbol: '' | '' | '' | null = null;
+    if (isStatusSymbol(filteredLines[cursor] ?? '')) {
+      symbol = filteredLines[cursor] as '' | '' | '';
+      cursor++;
+    }
+
+    let notesLines: string[] = [];
+
+    while (cursor < filteredLines.length && !looksLikeProductStart(filteredLines, cursor)) {
+      const next = filteredLines[cursor];
+      if (!next || isStatusSymbol(next)) {
+        cursor++;
+        continue;
+      }
+      notesLines.push(next);
+      cursor++;
+    }
+
+    const notes = notesLines.join(' ').replace(/\s+/g, ' ').trim();
+    const status = inferStatus(productName, notes, symbol);
 
     // Skip items that are page references or clearly not products
-    if (productName.length < 2 || productName.length > 80) continue;
-    if (/^\d/.test(productName)) continue;
-    if (/^(Contents|Table of|The Essential|Pesach Guide|cRc Kosher|Rabbi|Informational|Largest|Kosher|CONTENTS|Serving)/.test(productName)) continue;
-    // Skip sentence fragments that are notes, not product names
-    if (/ (is|are|can|does|not|the|but|and|may|that|this|have|has|also|when|if|for|with|to|of) /.test(productName)) continue;
-    if (productName.endsWith(' but') || productName.endsWith(' the') || productName.endsWith(' of')) continue;
+    const shouldSkip =
+      productName.length < 2 ||
+      productName.length > 80 ||
+      /^\d/.test(productName) ||
+      /^(Contents|Table of|The Essential|Pesach Guide|cRc Kosher|Rabbi|Informational|Largest|Kosher|CONTENTS|Serving)/.test(productName) ||
+      / (is|are|can|does|not|the|but|and|may|that|this|have|has|also|when|if|for|with|to|of) /.test(productName) ||
+      productName.endsWith(' but') ||
+      productName.endsWith(' the') ||
+      productName.endsWith(' of');
+
+    if (shouldSkip) {
+      idx = cursor;
+      continue;
+    }
 
     items.push({
       id: makeId('CRC', 'shopping-guide', 'general', productName),
@@ -839,9 +880,167 @@ function parseCRC(text: string): RawItem[] {
       isKitniyot: status === 'kitniyot',
       askRabbi: status === 'ask_rabbi',
     });
+
+    idx = cursor;
   }
 
-  return items;
+  const cleaned: RawItem[] = [];
+  const seen = new Set<string>();
+
+  function pushUnique(item: RawItem) {
+    if (seen.has(item.id)) return;
+    seen.add(item.id);
+    cleaned.push(item);
+  }
+
+  for (const item of items) {
+    // Drop parser fragments that came from note continuations rather than real products.
+    if (item.productName === '(e.g., Purell)') continue;
+    if (item.productName === 'Shoes, or Silver)') continue;
+    if (item.productName === 'Seeds, same status as kitniyos') continue;
+
+    if (item.productName === 'Candy' && item.conditions === 'Canned Fruits or') {
+      pushUnique({
+        ...item,
+        conditions: null,
+        notes: null,
+      });
+      pushUnique({
+        id: makeId('CRC', 'shopping-guide', 'general', 'Canned Fruits or Vegetables'),
+        productName: 'Canned Fruits or Vegetables',
+        category: getCRCCategory('Canned Fruits or Vegetables'),
+        status: 'conditional',
+        conditions: null,
+        notes: null,
+        org: 'CRC',
+        sourceSlug: 'crc',
+        sourceTitle: 'CRC Passover Guide',
+        pageNumber: null,
+        isNonFood: false,
+        isKitniyot: false,
+        askRabbi: false,
+      });
+      continue;
+    }
+
+    if (item.productName === 'Lip Products' && item.conditions === 'See pages 18. See') {
+      pushUnique({
+        ...item,
+        conditions: 'See pages 18. See www.ASKcRc.org for updates',
+        notes: 'See pages 18. See www.ASKcRc.org for updates',
+      });
+      continue;
+    }
+
+    if (item.productName === 'Hairspray' && item.conditions === 'When produced in the USA Hand Sanitizers') {
+      pushUnique({
+        ...item,
+        conditions: 'When produced in the USA',
+        notes: 'When produced in the USA',
+      });
+      pushUnique({
+        id: makeId('CRC', 'shopping-guide', 'general', 'Hand Sanitizers (e.g., Purell)'),
+        productName: 'Hand Sanitizers (e.g., Purell)',
+        category: getCRCCategory('Hand Sanitizers'),
+        status: 'approved',
+        conditions: null,
+        notes: null,
+        org: 'CRC',
+        sourceSlug: 'crc',
+        sourceTitle: 'CRC Passover Guide',
+        pageNumber: null,
+        isNonFood: true,
+        isKitniyot: false,
+        askRabbi: false,
+      });
+      continue;
+    }
+
+    if (item.productName === 'Play-Doh' && item.conditions === 'May contain chametz Polish (For Furniture,') {
+      pushUnique({
+        ...item,
+        conditions: 'May contain chametz',
+        notes: 'May contain chametz',
+      });
+      pushUnique({
+        id: makeId('CRC', 'shopping-guide', 'general', 'Polish (For Furniture, Shoes, or Silver)'),
+        productName: 'Polish (For Furniture, Shoes, or Silver)',
+        category: getCRCCategory('Polish'),
+        status: 'approved',
+        conditions: null,
+        notes: null,
+        org: 'CRC',
+        sourceSlug: 'crc',
+        sourceTitle: 'CRC Passover Guide',
+        pageNumber: null,
+        isNonFood: true,
+        isKitniyot: false,
+        askRabbi: false,
+      });
+      continue;
+    }
+
+    if (item.productName === 'Sanitizers (E.g. Purell)') {
+      pushUnique({
+        ...item,
+        id: makeId('CRC', 'shopping-guide', 'general', 'Hand Sanitizers (e.g., Purell)'),
+        productName: 'Hand Sanitizers (e.g., Purell)',
+        category: 'Health & Beauty',
+        isNonFood: true,
+      });
+      continue;
+    }
+
+    if (item.productName === 'Tums' && item.conditions === 'Chewable antacids require Pesach certification, and this brand is not certified for') {
+      pushUnique({
+        ...item,
+        conditions: 'Chewable antacids require Pesach certification, and this brand is not certified for Pesach',
+        notes: 'Chewable antacids require Pesach certification, and this brand is not certified for Pesach',
+      });
+      continue;
+    }
+
+    if (item.productName === 'Salads (Bagged)') {
+      pushUnique({
+        ...item,
+        status: 'conditional',
+        conditions: 'If certified is unavailable and contains no kitniyos or sensitive additives; buy before Pesach',
+        notes: 'If certified is unavailable and contains no kitniyos or sensitive additives; buy before Pesach',
+        isKitniyot: false,
+      });
+      continue;
+    }
+
+    if (item.productName === '(bagged)') continue;
+
+    if (item.productName === 'Salmon' && item.conditions === 'Fresh Canned, frozen or processed') {
+      pushUnique({
+        ...item,
+        conditions: 'Fresh',
+        notes: 'Fresh',
+      });
+      pushUnique({
+        id: makeId('CRC', 'shopping-guide', 'general', 'Salmon (Canned, Frozen, or Processed)'),
+        productName: 'Salmon (Canned, Frozen, or Processed)',
+        category: getCRCCategory('Salmon'),
+        status: 'conditional',
+        conditions: null,
+        notes: null,
+        org: 'CRC',
+        sourceSlug: 'crc',
+        sourceTitle: 'CRC Passover Guide',
+        pageNumber: null,
+        isNonFood: false,
+        isKitniyot: false,
+        askRabbi: false,
+      });
+      continue;
+    }
+
+    pushUnique(item);
+  }
+
+  return cleaned;
 }
 
 function getCRCCategory(product: string): string {

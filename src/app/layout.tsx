@@ -109,7 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <p className="mt-1">
             This tool is for reference only. Always consult your rabbi for specific halachic questions.
           </p>
-          <p className="mt-2">&copy; Y. Zahler 2026</p>
+          <p className="mt-2">&copy; worthwhileapps.com</p>
         </footer>
       </body>
     </html>
