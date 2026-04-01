@@ -27,6 +27,7 @@ function DocumentViewerInner() {
 
   const fileUrl = (source as { externalUrl?: string }).externalUrl ?? `/pdfs/${source.fileName}`;
   const isImage = source.fileType === 'image';
+  const isViewOnlySource = slug === 'cor-costco';
 
   return (
     <div>
@@ -65,6 +66,11 @@ function DocumentViewerInner() {
       <div className="bg-white rounded-xl border border-primary-100 overflow-hidden">
         {isImage ? (
           <div className="p-4">
+            {isViewOnlySource && (
+              <div className="max-w-4xl mx-auto mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+                This source image is available to view, but it is not yet included in the searchable product results.
+              </div>
+            )}
             <img
               src={fileUrl}
               alt={source.title}

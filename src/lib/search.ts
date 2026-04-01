@@ -38,7 +38,7 @@ export function getAllItems(): Item[] {
 }
 
 export function getItemsByCategory(category: string): Item[] {
-  return items.filter(i => i.category === category);
+  return items.filter(i => getNormalizedCategory(i) === category);
 }
 
 export function getItemsByOrg(org: string): Item[] {
@@ -49,12 +49,13 @@ export function getCategories(): { name: string; count: number; orgs: string[] }
   const catMap = new Map<string, { count: number; orgs: Set<string> }>();
   
   for (const item of items) {
-    const existing = catMap.get(item.category);
+    const normalizedCategory = getNormalizedCategory(item);
+    const existing = catMap.get(normalizedCategory);
     if (existing) {
       existing.count++;
       existing.orgs.add(item.org);
     } else {
-      catMap.set(item.category, { count: 1, orgs: new Set([item.org]) });
+      catMap.set(normalizedCategory, { count: 1, orgs: new Set([item.org]) });
     }
   }
   
@@ -64,7 +65,7 @@ export function getCategories(): { name: string; count: number; orgs: string[] }
       count: data.count,
       orgs: Array.from(data.orgs),
     }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getOrgs(): { code: string; count: number }[] {
@@ -107,4 +108,67 @@ export function findConflicts(): ConflictGroup[] {
 
 export function getTotalCount(): number {
   return items.length;
+}
+
+export function getNormalizedCategory(item: Item): string {
+  const raw = item.category.toLowerCase();
+  const name = item.productName.toLowerCase();
+  const text = `${raw} ${name} ${item.notes ?? ''} ${item.conditions ?? ''}`.toLowerCase();
+
+  if (
+    raw.includes('oral hygiene') ||
+    raw.includes('personal & oral hygiene') ||
+    /\b(mouthwash|toothpaste|toothpicks?|dental|dentures|floss|lipstick|lip balm|lip gloss|lip products?|gum|wax for braces|braces)\b/.test(text)
+  ) {
+    return 'Oral Care';
+  }
+
+  if (
+    raw.includes('medicine') ||
+    /\b(medicine|medicines|vitamins?|supplements?|pill|pills|antacid|chewable|laxative|suppositor|tums)\b/.test(text)
+  ) {
+    return 'Medicine';
+  }
+
+  if (raw.includes('kitniyot') || item.isKitniyot) {
+    return 'Kitniyot';
+  }
+
+  if (item.isNonFood || raw.includes('non-food')) {
+    return 'Non-Food';
+  }
+
+  if (
+    raw.includes('health & beauty') ||
+    raw.includes('health & hygiene') ||
+    /\b(cosmetics?|makeup|mascara|deodorant|perfume|cologne|nail polish|nail polish remover|hair gel|hairspray|mousse|sunscreen|baby powder|baby wipes)\b/.test(text)
+  ) {
+    return 'Health & Beauty';
+  }
+
+  if (raw.includes('paper') || raw.includes('plastic') || /\b(foil|paper|plastic|bags?|cups?|plates?|napkins?|tissues|pans?)\b/.test(text)) {
+    return 'Paper & Plastic';
+  }
+
+  if (raw.includes('beverage') || raw.includes('coffee') || raw.includes('tea') || raw.includes('water')) {
+    return 'Beverages';
+  }
+
+  if (raw.includes('wine') || raw.includes('liquor') || /\b(wine|vodka|beer|rum|whiskey|brandy|liqueur)\b/.test(text)) {
+    return 'Wines & Liquors';
+  }
+
+  if (raw.includes('oil')) return 'Oils';
+  if (raw.includes('dairy')) return 'Dairy';
+  if (raw.includes('fish')) return 'Fish';
+  if (raw.includes('meat') || raw.includes('poultry')) return 'Meat & Poultry';
+  if (raw.includes('fruit') || raw.includes('vegetable') || raw.includes('produce')) return 'Fruits & Vegetables';
+  if (raw.includes('nuts')) return 'Nuts';
+  if (raw.includes('spice') || raw.includes('seasoning') || raw === 'salt') return 'Spices & Seasonings';
+  if (raw.includes('sugar') || raw.includes('sweetener')) return 'Sugar & Sweeteners';
+  if (raw.includes('condiment') || /\b(ketchup|mustard|pickle|jam|jelly|vinegar|mayonnaise)\b/.test(text)) return 'Condiments';
+  if (raw.includes('candy') || raw.includes('chocolate') || raw.includes('dessert') || raw.includes('snack')) return 'Candy & Chocolate';
+  if (raw.includes('baking') || raw.includes('cooking') || raw.includes('matzah')) return 'Baking & Cooking';
+
+  return item.category;
 }

@@ -16,6 +16,9 @@ export default function DocumentsPage() {
         {sourcesData.map((source) => {
           const orgConfig = ORG_CONFIG[source.org as OrgCode];
           const fileUrl = (source as { externalUrl?: string }).externalUrl ?? `/pdfs/${source.fileName}`;
+          const searchStatusNote = source.slug === 'cor-costco'
+            ? 'Viewable source only — not yet included in search results.'
+            : null;
           return (
             <a
               key={source.slug}
@@ -45,6 +48,11 @@ export default function DocumentsPage() {
                   <p className="text-sm text-primary-400 mt-1 line-clamp-2">
                     {source.description}
                   </p>
+                  {searchStatusNote && (
+                    <p className="text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-1 mt-2 inline-block">
+                      {searchStatusNote}
+                    </p>
+                  )}
                   <p className="text-xs text-primary-300 mt-2">
                     {source.fileName}
                   </p>

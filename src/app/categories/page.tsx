@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getCategories, getItemsByCategory } from '@/lib/search';
+import { getCategories, getItemsByCategory, getNormalizedCategory } from '@/lib/search';
 import { STATUS_CONFIG, ORG_CONFIG } from '@/lib/types';
 import type { ItemStatus, OrgCode } from '@/lib/types';
 
@@ -11,6 +11,13 @@ function CategoriesInner() {
   const searchParams = useSearchParams();
   const selectedCat = searchParams.get('cat');
   const categories = getCategories();
+  const [categoryQuery, setCategoryQuery] = useState('');
+
+  const filteredCategories = useMemo(() => {
+    const query = categoryQuery.trim().toLowerCase();
+    if (!query) return categories;
+    return categories.filter(cat => cat.name.toLowerCase().includes(query));
+  }, [categories, categoryQuery]);
 
   const items = useMemo(() => {
     if (!selectedCat) return [];
@@ -33,29 +40,45 @@ function CategoriesInner() {
       </div>
 
       {!selectedCat ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-          {categories.map((cat) => (
-            <Link
-              key={cat.name}
-              href={`/categories?cat=${encodeURIComponent(cat.name)}`}
-              className="bg-white rounded-lg border border-primary-100 p-3 hover:shadow-md active:shadow-md hover:border-gold-300 transition-all"
-            >
-              <p className="font-semibold text-primary-800 text-sm leading-snug">{cat.name}</p>
-              <p className="text-xs text-primary-400 mt-1">
-                {cat.count} item{cat.count !== 1 ? 's' : ''}
-              </p>
-              <div className="flex gap-1 mt-2 flex-wrap">
-                {cat.orgs.map(org => {
-                  const config = ORG_CONFIG[org as OrgCode];
-                  return (
-                    <span key={org} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${config?.bgColor ?? 'bg-gray-100'} ${config?.color ?? 'text-gray-600'}`}>
-                      {org}
-                    </span>
-                  );
-                })}
-              </div>
-            </Link>
-          ))}
+        <div>
+          <div className="mb-4">
+            <input
+              type="search"
+              value={categoryQuery}
+              onChange={(e) => setCategoryQuery(e.target.value)}
+              placeholder="Search categories..."
+              className="w-full max-w-md px-4 py-3 rounded-xl border border-primary-200 bg-white text-primary-800 placeholder:text-primary-300 focus:border-gold-400 focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+            {filteredCategories.map((cat) => (
+              <Link
+                key={cat.name}
+                href={`/categories?cat=${encodeURIComponent(cat.name)}`}
+                className="bg-white rounded-lg border border-primary-100 p-3 hover:shadow-md active:shadow-md hover:border-gold-300 transition-all"
+              >
+                <p className="font-semibold text-primary-800 text-sm leading-snug">{cat.name}</p>
+                <p className="text-xs text-primary-400 mt-1">
+                  {cat.count} item{cat.count !== 1 ? 's' : ''}
+                </p>
+                <div className="flex gap-1 mt-2 flex-wrap">
+                  {cat.orgs.map(org => {
+                    const config = ORG_CONFIG[org as OrgCode];
+                    return (
+                      <span key={org} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${config?.bgColor ?? 'bg-gray-100'} ${config?.color ?? 'text-gray-600'}`}>
+                        {org}
+                      </span>
+                    );
+                  })}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {filteredCategories.length === 0 && (
+            <p className="text-primary-400 text-center py-8">No categories match that search.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -66,6 +89,8 @@ function CategoriesInner() {
             const statusConfig = STATUS_CONFIG[item.status as ItemStatus];
             const orgConfig = ORG_CONFIG[item.org as OrgCode];
             const sourceUrl = `/documents/${item.sourceSlug}${item.pageNumber ? `?page=${item.pageNumber}` : ''}`;
+            const sourceCategory = item.category;
+            const normalizedCategory = getNormalizedCategory(item);
 
             return (
               <div key={item.id} className="bg-white rounded-xl border border-primary-100 p-3">
@@ -92,6 +117,11 @@ function CategoriesInner() {
                 {/* Conditions (if any) */}
                 {item.conditions && (
                   <p className="text-xs text-primary-400 mt-1.5 line-clamp-1">{item.conditions}</p>
+                )}
+                {sourceCategory !== normalizedCategory && (
+                  <p className="text-xs text-primary-300 mt-1">
+                    Source category: {sourceCategory}
+                  </p>
                 )}
               </div>
             );
