@@ -20,7 +20,7 @@ function ExternalFormCta() {
         Join the 5787 waitlist
       </a>
       <p className="text-xs text-primary-500 text-center">
-        Opens a short form (e.g. Google). Your answers are saved to your spreadsheet automatically.
+        Opens your sign-up form in a new tab.
       </p>
     </div>
   );
@@ -136,7 +136,7 @@ export default function SeasonEndedLanding() {
 
       <p className="text-xs text-primary-400 mt-8 leading-relaxed">
         {useExternalForm
-          ? 'The form is run by your chosen provider (e.g. Google). Use it only to send the announcement you described.'
+          ? 'The form is hosted outside this app. Use collected addresses only for the announcement you described.'
           : 'We use your email only for this announcement. You can unsubscribe from any message we send.'}
       </p>
     </div>

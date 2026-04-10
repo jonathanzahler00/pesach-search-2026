@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -17,31 +18,43 @@ function checkRateLimit(ip: string): boolean {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export async function POST(request: NextRequest) {
+function getSupabaseAdmin(): SupabaseClient | null {
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+async function saveToSupabase(email: string): Promise<{ ok: true } | { error: string; status: number }> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return { error: 'Sign-up is not configured yet.', status: 503 };
+  }
+
+  const normalized = email.trim().toLowerCase();
+  const { error } = await supabase.from('waitlist_signups').insert({ email: normalized });
+
+  if (!error) {
+    return { ok: true };
+  }
+
+  // Unique violation — treat as success so the UI does not error on repeat signups
+  if (error.code === '23505') {
+    return { ok: true };
+  }
+
+  console.error('[waitlist] Supabase insert failed:', error.code, error.message);
+  return { error: 'Failed to save. Please try again.', status: 500 };
+}
+
+async function notifyViaResend(email: string): Promise<{ ok: true } | { error: string; status: number }> {
   if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: 'Sign-up is not configured yet.' }, { status: 503 });
+    return { error: 'Sign-up is not configured yet.', status: 503 };
   }
 
   const toEmail = process.env.WAITLIST_TO_EMAIL || process.env.FEEDBACK_TO_EMAIL;
   if (!toEmail) {
-    return NextResponse.json({ error: 'Sign-up is not configured yet.' }, { status: 503 });
-  }
-
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: 'Too many attempts. Please wait a few minutes.' }, { status: 429 });
-  }
-
-  let body: { email?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-  }
-
-  const email = typeof body.email === 'string' ? body.email.trim() : '';
-  if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+    return { error: 'Sign-up is not configured yet.', status: 503 };
   }
 
   const html = `
@@ -70,10 +83,46 @@ export async function POST(request: NextRequest) {
       subject: `[Pesach Search] Waitlist signup — ${email}`,
       html,
     });
-    return NextResponse.json({ ok: true });
+    return { ok: true };
   } catch {
-    return NextResponse.json({ error: 'Failed to save. Please try again.' }, { status: 500 });
+    return { error: 'Failed to save. Please try again.', status: 500 };
   }
+}
+
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: 'Too many attempts. Please wait a few minutes.' }, { status: 429 });
+  }
+
+  let body: { email?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  }
+
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
+    return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
+  }
+
+  const supabaseConfigured =
+    Boolean(process.env.SUPABASE_URL?.trim()) && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+
+  if (supabaseConfigured) {
+    const result = await saveToSupabase(email);
+    if ('ok' in result) {
+      return NextResponse.json({ ok: true });
+    }
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  const resendResult = await notifyViaResend(email);
+  if ('ok' in resendResult) {
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json({ error: resendResult.error }, { status: resendResult.status });
 }
 
 function escapeHtml(str: string): string {

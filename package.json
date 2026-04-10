@@ -11,6 +11,7 @@
     "extract": "npx tsx scripts/extract-data.ts && python scripts/enrich-page-numbers.py"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
     "@vercel/analytics": "^2.0.1",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
